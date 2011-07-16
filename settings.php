@@ -1,0 +1,323 @@
+<?php
+session_start();
+error_reporting(E_ALL ^ (E_NOTICE));
+ 
+$password_sha1="";
+if (empty($password_sha1))
+{
+	echo "Please set a password in this file.";
+	exit;
+}
+
+//var_dump($_GET['pass']);
+if (!isset($_SESSION['loggedin']))
+{
+	if (!isset($_POST['pass']))
+	{
+		echo '<form name="pw" action="settings.php" method="post">'."\n";
+		echo 'Password: <input type="password" name="pass">'."\n";
+		echo '</form>'."\n";
+		exit;
+	}
+	elseif (sha1($_POST['pass']) !== $password_sha1)
+	{
+		echo "Incorrect Password";
+		echo '<form name="password" action="settings.php" method="post">'."\n";
+		echo 'Password: <input type="text" name="pass">'."\n";
+		echo '</form>'."\n";
+		exit;
+	}
+	elseif (sha1($_POST['pass']) == $password_sha1)
+	{
+		$_SESSION['loggedin'] = true;
+	}
+}
+
+echo '<script src="includes/formadd.js" type="text/javascript"></script>'."\n";
+//include "config.php";
+$settings = json_decode(file_get_contents("config.json"), true);
+include 'includes/jsonformat.php';
+echo "<a href='settings.php'>Settings Index</a><br><br>\n";
+
+switch ($_GET['section']) {
+	case "removeapk":
+		echo '<form name="removeapk" action="settings.php?section=removeapk" method="post">'."\n";
+		//echo '<input type="hidden" name="section" value="removeapk">';
+		if ($_POST)
+		{
+			$settings['removeapk'] = array();
+			foreach ($_POST as $value)
+			{
+				$settings['removeapk'] = array_merge($settings['removeapk'], array($value['file'] => $value['name']));
+				//print_r($value);
+			}
+			file_put_contents("config.json", indent(json_encode($settings)));
+		}
+		echo "<div id='apk'>\n";
+		foreach ($settings['removeapk'] as $file => $name)
+		{
+			echo "<div>APK Name: <input type='text' name='".$file."[file]' value='".$file."'/><br>\n";
+			echo "Display Name: <input type='text' name='".$file."[name]' value='".$name."'/>\n";
+			echo '<a onclick="this.parentNode.parentNode.removeChild(this.parentNode);" style="cursor:pointer;color:blue;">Remove Field</a><br>'."\n";
+			echo "<br></div>\n";
+		}
+		echo "</div>\n";
+		echo "<br>\n";
+		echo '<input type="button" value="Add another text input" onClick=\'addApkInput("apk");\'>'."\n";
+		echo '<input type="submit" value="Submit" />'."\n";
+		echo "</form>\n";
+		break;
+	
+	case "bootanim":
+		echo '<form name="bootanim" action="settings.php?section=bootanim" method="post">'."\n";
+		//echo '<input type="hidden" name="section" value="removeapk">';
+		if ($_POST)
+		{
+			$settings['bootanim'] = array();
+			foreach ($_POST as $key => $config)
+			{
+				$settings['bootanim'] = array_merge($settings['bootanim'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'])));
+			}
+			file_put_contents("config.json", indent(json_encode($settings)));
+			echo "<pre>\n";
+			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
+			echo "</pre>\n";
+		}
+		$files = str_replace("files/bootanim/", "", glob("files/bootanim/*.zip"));
+		foreach ($files as $file)
+		{
+			echo "<h3>".$file."</h3>\n";
+			echo "Name: <input type='text' name='".base64_encode($file)."[name]' value='".$settings['bootanim'][$file]['name']."'/><br>\n";
+			echo "Link (to forum post): <input type='text' name='".base64_encode($file)."[link]' value='".$settings['bootanim'][$file]['link']."'/><br>\n";
+			echo "<br>\n";
+			
+		}
+		echo '<input type="submit" value="Submit" />'."\n";
+		echo "</form>\n";
+		break;
+	
+	case "mod":
+		echo '<form name="mod" action="settings.php?section=mod" method="post">'."\n";
+		if ($_POST)
+		{
+			$settings['mod'] = array();
+			foreach ($_POST as $key => $config)
+			{
+				file_put_contents("files/mod/".base64_decode($key)."/custom-script", $config['script']);
+				$settings['mod'] = array_merge($settings['mod'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
+			}
+			$jsettings = json_encode($settings);
+			$jsettings = str_replace('"removeodex":"on"', '"removeodex":true', $jsettings);
+			file_put_contents("config.json", indent($jsettings));
+		}
+		$folders = str_replace("files/mod/", "", array_filter(glob("files/mod/*"), 'is_dir'));
+		foreach ($folders as $folder)
+		{
+			echo "<h3>".$folder."</h3>\n";
+			echo "Name: <input type='text' name='".base64_encode($folder)."[name]' value='".$settings['mod'][$folder]['name']."'/><br>\n";
+			echo "Link (to forum post): <input type='text' name='".base64_encode($folder)."[link]' value='".$settings['mod'][$folder]['link']."'/><br>\n";
+			if ($settings['mod'][$folder]['removeodex'])
+			{
+				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' checked/><br>\n";
+			} else {
+				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' /><br>\n";
+			}
+			echo "<br>\n";
+			echo "<textarea name='".base64_encode($folder)."[script]' rows='10' cols='60'>\n";
+			if (file_exists("files/mod/".$folder."/custom-script"))
+			{
+				echo file_get_contents("files/mod/".$folder."/custom-script");
+			}
+			echo "</textarea>\n";
+			
+		}
+		echo '<input type="submit" value="Submit" />'."\n";
+		echo "</form>\n";
+		break;
+	
+	case "theme":
+		echo '<form name="theme" action="settings.php?section=theme" method="post">'."\n";
+		//echo '<input type="hidden" name="section" value="removeapk">';
+		if ($_POST)
+		{
+			$settings['theme'] = array();
+			foreach ($_POST as $key => $config)
+			{
+				file_put_contents("files/theme/".base64_decode($key)."/custom-script", $config['script']);
+				$settings['theme'] = array_merge($settings['theme'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
+			}
+			$jsettings = json_encode($settings);
+			$jsettings = str_replace('"removeodex":"on"', '"removeodex":true', $jsettings);
+			file_put_contents("config.json", indent($jsettings));
+		}
+		$folders = str_replace("files/theme/", "", array_filter(glob("files/theme/*"), 'is_dir'));
+		foreach ($folders as $folder)
+		{
+			echo "<h3>".$folder."</h3>\n";
+			echo "Name: <input type='text' name='".base64_encode($folder)."[name]' value='".$settings['theme'][$folder]['name']."'/><br>\n";
+			echo "Link (to forum post): <input type='text' name='".base64_encode($folder)."[link]' value='".$settings['theme'][$folder]['link']."'/><br>\n";
+			if ($settings['theme'][$folder]['removeodex'])
+			{
+				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' checked/><br>\n";
+			} else {
+				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' /><br>\n";
+			}
+			echo "<br>\n";
+			echo "<textarea name='".base64_encode($folder)."[script]' rows='10' cols='60'>\n";
+			if (file_exists("files/theme/".$folder."/custom-script"))
+			{
+				echo file_get_contents("files/theme/".$folder."/custom-script");
+			}
+			echo "</textarea>\n";
+			
+		}
+		echo '<input type="submit" value="Submit" />'."\n";
+		break;
+		
+	case "kernel":
+		echo '<form name="kernel" action="settings.php?section=kernel" method="post">'."\n";
+		//echo '<input type="hidden" name="section" value="removeapk">';
+		if ($_POST)
+		{
+			$settings['kernel'] = array();
+			foreach ($_POST as $key => $config)
+			{
+				$settings['kernel'] = array_merge($settings['kernel'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'])));
+			}
+			file_put_contents("config.json", indent(json_encode($settings)));
+			echo "<pre>\n";
+			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
+			echo "</pre>\n";
+		}
+		$files = str_replace("files/kernel/", "", glob("files/kernel/*.img"));
+		foreach ($files as $file)
+		{
+			echo "<h3>".$file."</h3>\n";
+			echo "Name: <input type='text' name='".base64_encode($file)."[name]' value='".$settings['kernel'][$file]['name']."'/><br>\n";
+			echo "Link (to forum post): <input type='text' name='".base64_encode($file)."[link]' value='".$settings['kernel'][$file]['link']."'/><br>\n";
+			echo "<br>\n";
+			
+		}
+		echo '<input type="submit" value="Submit" />'."\n";
+		break;
+		
+	case "general":
+		echo '<form name="general" action="settings.php?section=general" method="post">'."\n";
+		//echo '<input type="hidden" name="section" value="removeapk">';
+		if ($_POST)
+		{
+			$settings['general'] = array();
+			$settings['general'] = $_POST['general'];
+			$jsettings = json_encode($settings);
+			$jsettings = str_replace(':"on"', ':true', $jsettings);
+			file_put_contents("config.json", indent($jsettings));
+			echo "<pre>\n";
+			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
+			echo "</pre>\n";
+		}
+		echo "Title: <input type='text' name='general[title]' value='".$settings['general']['title']."' /><br><br>\n";
+		echo "Build Fingerprint: <input type='text' name='general[fingerprint]' value='".$settings['general']['fingerprint']."' /><br><br>\n";
+		if ($settings['general']['baserom'])
+		{
+			echo "Use a Base Rom: <input type='checkbox' name='general[baserom]' checked/><br>\n";
+		} else {
+			echo "Use a Base Rom: <input type='checkbox' name='general[baserom]'/><br>\n";
+		}
+		echo '<input type="submit" value="Submit" />'."\n";
+		echo "</form>\n";
+		break;
+		
+	case "mount":
+		echo '<form name="mount" action="settings.php?section=mount" method="post">'."\n";
+		if ($_POST)
+		{
+			$settings['mount'] = array();
+			foreach ($_POST as $value)
+			{
+				$settings['mount'] = array_merge($settings['mount'], array($value['mpoint'] => array('fstype' => $value['fstype'], 'parttype' => $value['parttype'], 'device' => $value['device'] )));
+			}
+			
+			file_put_contents("config.json", indent(json_encode($settings)));
+		}
+		echo "<div id='mounts'>\n";
+		foreach ($settings['mount'] as $mpoint => $config)
+		{
+			echo "Filesystem Type: <input type='text' name='".$mpoint."[fstype]' value='".$config['fstype']."'/><br>\n";
+			echo "Partition Type(usually mtd or emmc): <input type='text' name='".$mpoint."[parttype]' value='".$config['parttype']."'/><br>\n";
+			echo "Device Path(/dev): <input type='text' name='".$mpoint."[device]' value='".$config['device']."'/><br>\n";
+			echo "<div>Mount Point(folder): <input type='text' name='".$mpoint."[mpoint]' value='".$mpoint."'/>\n";
+			echo '<a onclick="this.parentNode.parentNode.removeChild(this.parentNode);" style="cursor:pointer;color:blue;">Remove Field</a><br>'."\n";
+			echo "<br></div>\n";
+		}
+		echo "</div>\n";
+		echo "<br>\n";
+		echo '<input type="button" value="Add another text input" onClick=\'addMountInput("mounts");\'>'."\n";
+		echo '<input type="submit" value="Submit" />'."\n";
+		echo "</form>\n";
+		break;
+	
+	
+	default:
+		if ($_POST and !isset($_POST['pass']))
+		{
+			$settings['enabled'] = array();
+			$settings['enabled'] = $_POST['enabled'];
+			$jsettings = json_encode($settings);
+			$jsettings = str_replace(':"on"', ':true', $jsettings);
+			file_put_contents("config.json", indent($jsettings));
+		}
+		echo '<form name="enabled" action="settings.php" method="post">'."\n";
+		echo "Use checkboxes to enable or disable sections<br><br>\n";
+		echo "<a href='settings.php?section=general'>General Settings</a><br>\n";
+		echo "<a href='settings.php?section=mount'>Mounts</a><br>\n";
+		
+		if ($settings['enabled']['removeapk'])
+		{
+			echo "<input type='checkbox' name='enabled[removeapk]' checked/>\n";
+		} else {
+			echo "<input type='checkbox' name='enabled[removeapk]' />\n";
+		}
+		echo "<a href='settings.php?section=removeapk'>Remove Bloatware</a><br>\n";
+		
+		if ($settings['enabled']['bootanim'])
+		{
+			echo "<input type='checkbox' name='enabled[bootanim]' checked/>\n";
+		} else {
+			echo "<input type='checkbox' name='enabled[bootanim]' />\n";
+		}
+		echo "<a href='settings.php?section=bootanim'>Boot Animations</a><br>\n";
+		
+		if ($settings['enabled']['mod'])
+		{
+			echo "<input type='checkbox' name='enabled[mod]' checked/>\n";
+		} else {
+			echo "<input type='checkbox' name='enabled[mod]' />\n";
+		}
+		echo "<a href='settings.php?section=mod'>Mods</a><br>\n";
+		
+		if ($settings['enabled']['theme'])
+		{
+			echo "<input type='checkbox' name='enabled[theme]' checked/>\n";
+		} else {
+			echo "<input type='checkbox' name='enabled[theme]' />\n";
+		}
+		echo "<a href='settings.php?section=theme'>Themes</a><br>\n";
+		
+		if ($settings['enabled']['kernel'])
+		{
+			echo "<input type='checkbox' name='enabled[kernel]' checked/>\n";
+		} else {
+			echo "<input type='checkbox' name='enabled[kernel]' />\n";
+		}
+		echo "<a href='settings.php?section=kernel'>Kernels/Boot Images</a><br>\n";
+		echo '<input type="submit" value="Submit" />'."\n";
+		
+}
+echo "<pre>\n";
+echo "<br>------------------------<br>\n";
+print_r($_POST);
+
+print_r($settings);
+//print_r(indent(json_encode($settings)));
+
+?>
