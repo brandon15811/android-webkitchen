@@ -9,7 +9,6 @@ if (empty($password_sha1))
 	exit;
 }
 
-//var_dump($_GET['pass']);
 if (!isset($_SESSION['loggedin']))
 {
 	if (!isset($_POST['pass']))
@@ -34,7 +33,6 @@ if (!isset($_SESSION['loggedin']))
 }
 
 echo '<script src="includes/formadd.js" type="text/javascript"></script>'."\n";
-//include "config.php";
 $settings = json_decode(file_get_contents("config.json"), true);
 include 'includes/jsonformat.php';
 echo "<a href='settings.php'>Settings Index</a><br><br>\n";
@@ -42,14 +40,12 @@ echo "<a href='settings.php'>Settings Index</a><br><br>\n";
 switch ($_GET['section']) {
 	case "removeapk":
 		echo '<form name="removeapk" action="settings.php?section=removeapk" method="post">'."\n";
-		//echo '<input type="hidden" name="section" value="removeapk">';
 		if ($_POST)
 		{
 			$settings['removeapk'] = array();
 			foreach ($_POST as $value)
 			{
 				$settings['removeapk'] = array_merge($settings['removeapk'], array($value['file'] => $value['name']));
-				//print_r($value);
 			}
 			file_put_contents("config.json", indent(json_encode($settings)));
 		}
@@ -70,7 +66,6 @@ switch ($_GET['section']) {
 	
 	case "bootanim":
 		echo '<form name="bootanim" action="settings.php?section=bootanim" method="post">'."\n";
-		//echo '<input type="hidden" name="section" value="removeapk">';
 		if ($_POST)
 		{
 			$settings['bootanim'] = array();
@@ -80,7 +75,6 @@ switch ($_GET['section']) {
 			}
 			file_put_contents("config.json", indent(json_encode($settings)));
 			echo "<pre>\n";
-			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
 			echo "</pre>\n";
 		}
 		$files = str_replace("files/bootanim/", "", glob("files/bootanim/*.zip"));
@@ -103,7 +97,8 @@ switch ($_GET['section']) {
 			$settings['mod'] = array();
 			foreach ($_POST as $key => $config)
 			{
-				file_put_contents("files/mod/".base64_decode($key)."/custom-script", $config['script']);
+				file_put_contents("files/mod/".base64_decode($key)."/before-script", $config['beforescript']);
+				file_put_contents("files/mod/".base64_decode($key)."/after-script", $config['afterscript']);
 				$settings['mod'] = array_merge($settings['mod'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
 			}
 			$jsettings = json_encode($settings);
@@ -123,10 +118,18 @@ switch ($_GET['section']) {
 				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' /><br>\n";
 			}
 			echo "<br>\n";
-			echo "<textarea name='".base64_encode($folder)."[script]' rows='10' cols='60'>\n";
-			if (file_exists("files/mod/".$folder."/custom-script"))
+			echo "Before Script: <br>\n";
+			echo "<textarea name='".base64_encode($folder)."[beforescript]' rows='10' cols='60'>\n";
+			if (file_exists("files/mod/".$folder."/before-script"))
 			{
-				echo file_get_contents("files/mod/".$folder."/custom-script");
+				echo file_get_contents("files/mod/".$folder."/before-script");
+			}
+			echo "</textarea><br>\n";
+			echo "After Script:<br>\n";
+			echo "<textarea name='".base64_encode($folder)."[afterscript]' rows='10' cols='60'>\n";
+			if (file_exists("files/mod/".$folder."/after-script"))
+			{
+				echo file_get_contents("files/mod/".$folder."/after-script");
 			}
 			echo "</textarea>\n";
 			
@@ -137,13 +140,13 @@ switch ($_GET['section']) {
 	
 	case "theme":
 		echo '<form name="theme" action="settings.php?section=theme" method="post">'."\n";
-		//echo '<input type="hidden" name="section" value="removeapk">';
 		if ($_POST)
 		{
 			$settings['theme'] = array();
 			foreach ($_POST as $key => $config)
 			{
-				file_put_contents("files/theme/".base64_decode($key)."/custom-script", $config['script']);
+				file_put_contents("files/theme/".base64_decode($key)."/before-script", $config['beforescript']);
+				file_put_contents("files/theme/".base64_decode($key)."/after-script", $config['afterscript']);
 				$settings['theme'] = array_merge($settings['theme'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
 			}
 			$jsettings = json_encode($settings);
@@ -163,10 +166,18 @@ switch ($_GET['section']) {
 				echo "Remove Odex: <input type='checkbox' name='".base64_encode($folder)."[removeodex]' /><br>\n";
 			}
 			echo "<br>\n";
-			echo "<textarea name='".base64_encode($folder)."[script]' rows='10' cols='60'>\n";
-			if (file_exists("files/theme/".$folder."/custom-script"))
+			echo "Before Script:<br>\n";
+			echo "<textarea name='".base64_encode($folder)."[beforescript]' rows='10' cols='60'>\n";
+			if (file_exists("files/theme/".$folder."/before-script"))
 			{
-				echo file_get_contents("files/theme/".$folder."/custom-script");
+				echo file_get_contents("files/theme/".$folder."/before-script");
+			}
+			echo "</textarea><br>\n";
+			echo "After Script:<br>\n";
+			echo "<textarea name='".base64_encode($folder)."[afterscript]' rows='10' cols='60'>\n";
+			if (file_exists("files/theme/".$folder."/after-script"))
+			{
+				echo file_get_contents("files/theme/".$folder."/after-script");
 			}
 			echo "</textarea>\n";
 			
@@ -176,7 +187,6 @@ switch ($_GET['section']) {
 		
 	case "kernel":
 		echo '<form name="kernel" action="settings.php?section=kernel" method="post">'."\n";
-		//echo '<input type="hidden" name="section" value="removeapk">';
 		if ($_POST)
 		{
 			$settings['kernel'] = array();
@@ -186,11 +196,11 @@ switch ($_GET['section']) {
 			}
 			file_put_contents("config.json", indent(json_encode($settings)));
 			echo "<pre>\n";
-			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
 			echo "</pre>\n";
 		}
 		$files = str_replace("files/kernel/", "", glob("files/kernel/*.img"));
 		foreach ($files as $file)
+
 		{
 			echo "<h3>".$file."</h3>\n";
 			echo "Name: <input type='text' name='".base64_encode($file)."[name]' value='".$settings['kernel'][$file]['name']."'/><br>\n";
@@ -203,7 +213,6 @@ switch ($_GET['section']) {
 		
 	case "general":
 		echo '<form name="general" action="settings.php?section=general" method="post">'."\n";
-		//echo '<input type="hidden" name="section" value="removeapk">';
 		if ($_POST)
 		{
 			$settings['general'] = array();
@@ -212,7 +221,6 @@ switch ($_GET['section']) {
 			$jsettings = str_replace(':"on"', ':true', $jsettings);
 			file_put_contents("config.json", indent($jsettings));
 			echo "<pre>\n";
-			//print_r(str_replace("_zip", ".zip", $settings['bootanim']));
 			echo "</pre>\n";
 		}
 		echo "Title: <input type='text' name='general[title]' value='".$settings['general']['title']."' /><br><br>\n";
@@ -313,11 +321,13 @@ switch ($_GET['section']) {
 		echo '<input type="submit" value="Submit" />'."\n";
 		
 }
+?>
+<?php
+/*
 echo "<pre>\n";
 echo "<br>------------------------<br>\n";
 print_r($_POST);
 
 print_r($settings);
-//print_r(indent(json_encode($settings)));
-
+*/
 ?>
