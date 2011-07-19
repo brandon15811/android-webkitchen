@@ -2,7 +2,7 @@
 session_start();
 error_reporting(E_ALL ^ (E_NOTICE));
  
-$password_sha1="cbf2510a5f9f7eece23428da7125c06115839e2b";
+$password_sha1="";
 if (empty($password_sha1))
 {
 	echo "Please set a password in this file.";
