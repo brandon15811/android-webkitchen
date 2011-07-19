@@ -112,31 +112,33 @@ foreach ($settings['mount'] as $mpoint => $config)
 	scriptadd('mount("'.$config['fstype'].'", "'.$config['parttype'].'", "'.$config['device'].'", "'.$mpoint.'");');
 }
 scriptadd('assert(file_getprop("/system/build.prop", "ro.build.fingerprint") == "'.$settings['general']['fingerprint'].'");');
-scriptadd('show_progress(1.0, 0);');
+scriptadd('show_progress(1, 0);');
 
 //Base Rom
-
-$dir = "files/baserom";
-scriptadd('ui_print("Installing Base Rom");');
-if (file_exists("files/baserom/before-script"))
+if ($settings['general']['baserom'])
 {
-	scriptadd(file("files/baserom/before-script", FILE_SKIP_EMPTY_LINES));
-}
-$it = new RecursiveDirectoryIterator($dir);
+	$dir = "files/baserom";
+	scriptadd('ui_print("Installing Base Rom");');
+	if (file_exists("files/baserom/before-script"))
+	{
+		scriptadd(file("files/baserom/before-script", FILE_SKIP_EMPTY_LINES));
+	}
 
-foreach(new RecursiveIteratorIterator($it) as $file) {
-	$file = str_replace($dir, "", $file);
-	$file = str_replace("/.", "ikodslghjkd", $file);
-	if ($file == "/before-script" or $file == "/after-script")
-	{
-	} 
-	elseif (!strstr($file, "ikodslghjkd") and !strstr($file, "ikodslghjkd"))
-	{
-		scriptadd('package_extract_file("'.substr($file, 1).'", "'.$file.'");');
-		zipadd(array($dir.$file => substr($file, 1)));
+	$it = new RecursiveDirectoryIterator($dir);
+	
+	foreach(new RecursiveIteratorIterator($it) as $file) {
+		$file = str_replace($dir, "", $file);
+		$file = str_replace("/.", "ikodslghjkd", $file);
+		if ($file == "/before-script" or $file == "/after-script")
+		{
+		} 
+		elseif (!strstr($file, "ikodslghjkd") and !strstr($file, "ikodslghjkd"))
+		{
+			scriptadd('package_extract_file("'.substr($file, 1).'", "'.$file.'");');
+			zipadd(array($dir.$file => substr($file, 1)));
+		}
 	}
 }
-
 //Remove APKs
 if ($settings['enabled']['removeapk'])
 {
@@ -231,12 +233,21 @@ if ($settings['enabled']['theme'])
 //Boot Animations
 if ($settings['enabled']['bootanim'])
 {
+	$bootanim = $_GET['bootanim'];
 	if (isset($_GET['bootanim']) and is_array($settings['bootanim'][$bootanim]))
 	{
-		$bootanim = $_GET['bootanim'];
 		scriptadd('ui_print("Installing '.$settings['bootanim'][$bootanim]['name'].' Boot Animation");');
 		scriptadd('package_extract_file("system/media/bootanimation.zip", "/system/media/bootanimation.zip");');
 		zipadd(array("files/bootanim/".$_GET['bootanim'] => "system/media/bootanimation.zip"));
+		if (is_dir("files/bootanim/".str_replace(".zip","", $_GET['bootanim'])."_audio"))
+		{
+			foreach(glob("files/bootanim/".str_replace(".zip","", $_GET['bootanim'])."_audio/*.ogg") as $file)
+			{ 
+				$filee = str_replace("files/bootanim/".str_replace(".zip", "", $_GET['bootanim'])."_audio/", "", $file);
+				scriptadd('package_extract_file("system/media/audio/notifications/'.$filee.'", "/system/media/audio/notifications/'.$filee.'");');
+				zipadd(array($file => "system/media/audio/notifications/".$filee));
+			}
+		}
 	}
 }
 
@@ -247,28 +258,47 @@ if ($settings['enabled']['kernel'])
 	if (isset($_GET['kernel']) and is_array($settings['kernel'][$kernel]))
 	{
 		scriptadd('ui_print("Flashing '.$settings['kernel'][$kernel]['name'].' Kernel/Boot Image");');
-		scriptadd('assert(package_extract_file("boot.img", "/tmp/boot.img"),');
-		scriptadd('write_raw_image("/tmp/boot.img", "boot"),');
-		scriptadd('delete("/tmp/boot.img"));');
+		scriptadd('package_extract_file("boot.img", "/tmp/boot.img");');
+		scriptadd('run_program("/sbin/busybox", "dd", "if=/dev/zero", "of=/dev/block/mmcblk0p11");');
+		scriptadd('run_program("/sbin/busybox", "dd", "if=/tmp/boot.img", "of=/dev/block/mmcblk0p11");');
+		scriptadd('delete("/tmp/boot.img");');
 		zipadd(array("files/kernel/".$_GET['kernel'] => "boot.img"));
+		if (is_dir("files/kernel/".str_replace(".img","", $_GET['kernel'])."_ko"))
+		{
+			foreach(glob("files/kernel/".str_replace(".img","", $_GET['kernel'])."_ko/*.ko") as $file)
+			{
+				$filee = str_replace("files/kernel/".str_replace(".img","", $_GET['kernel'])."_ko/", "", $file);
+				scriptadd('package_extract_file("system/lib/'.$filee.'", "/system/lib/'.$filee.'");');
+				zipadd(array($file => "system/lib/".$filee));
+			}
+		}
 	}
 }
 
 //Base Rom After Script
-if (file_exists("files/baserom/after-script"))
+if ($settings['general']['baserom'])
 {
-	scriptadd(file("files/baserom/after-script", FILE_SKIP_EMPTY_LINES));
+	if (file_exists("files/baserom/after-script"))
+	{
+		scriptadd(file("files/baserom/after-script", FILE_SKIP_EMPTY_LINES));
+	}
 }
-
 //Unmount Partitions
-scriptadd('unmount("/data");');
-scriptadd('unmount("/system");');
+foreach ($settings['mount'] as $mpoint => $config)
+{
+	scriptadd('unmount("'.$mpoint.'");');
+}
 
 //Create Zip
 
 include('includes/functions.lib.php');
 include('includes/zipcreate.cls.php');
-$filename = "zip/".date('m-d-y-h:i:s')."-".substr(sha1(rand().implode($_POST).time()), -6) .".zip";
+if (!is_dir("zip/"))
+{
+	mkdir("zip/");
+	chmod("zip/", 0777);
+}
+$filename = "zip/".date('m-d-y-h:i:s')."-".substr(sha1(rand().implode($_GET).time()), -6) .".zip";
 $zip = new ZipCreate();
 foreach ($filelist as $realpath => $zippath)
 {
@@ -294,6 +324,10 @@ while ($numlines > 0)
 {
 	$numarray = $numarray + 5;
 	$numlines = $numlines - 5;
+	if ($numm >= 1)
+	{
+		$numm = 0.99;
+	}
 	array_splice($updatescript, $numarray ,0 ,"set_progress(\"".$numm."\");\n");
 	$numm = bcadd($numm, $num, 6);
 }
@@ -304,21 +338,23 @@ if ($fp = fopen($filename, 'wb'))
 	fwrite($fp, $zip->build_zip());
 	fclose($fp);
 }
-echo "<a href='".$filename."'>Download</a>";
+chmod($filename, 0777);
+echo "<a id='download' href='".$filename."'>Download</a>";
 ?>
 <?php
-/*
-if (file_exists($filename)) {
-	echo "The file $filename exists";
-} else {
-	echo "The file $filename does not exist";
+if(file_exists("debug"))
+{
+	if (file_exists($filename)) {
+		echo "The file $filename exists";
+	} else {
+		echo "The file $filename does not exist";
+	}
+	echo "<pre>";
+	print_r($_GET);
+	echo "Update Script<br>";
+	print_r($updatescript);
+	echo "File List<br>";
+	print_r($filelist);
+	echo "</pre>";
 }
-echo "<pre>";
-print_r($_GET);
-echo "Update Script<br>";
-print_r($updatescript);
-echo "File List<br>";
-print_r($filelist);
-echo "</pre>";
-*/
 ?>

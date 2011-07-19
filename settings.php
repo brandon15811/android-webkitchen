@@ -2,7 +2,7 @@
 session_start();
 error_reporting(E_ALL ^ (E_NOTICE));
  
-$password_sha1="";
+$password_sha1="cbf2510a5f9f7eece23428da7125c06115839e2b";
 if (empty($password_sha1))
 {
 	echo "Please set a password in this file.";
@@ -97,8 +97,8 @@ switch ($_GET['section']) {
 			$settings['mod'] = array();
 			foreach ($_POST as $key => $config)
 			{
-				file_put_contents("files/mod/".base64_decode($key)."/before-script", $config['beforescript']);
-				file_put_contents("files/mod/".base64_decode($key)."/after-script", $config['afterscript']);
+				file_put_contents("files/mod/".base64_decode($key)."/before-script", str_replace("\r", "", $config['beforescript']));
+				file_put_contents("files/mod/".base64_decode($key)."/after-script", str_replace("\r", "", $config['afterscript']));
 				$settings['mod'] = array_merge($settings['mod'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
 			}
 			$jsettings = json_encode($settings);
@@ -145,8 +145,8 @@ switch ($_GET['section']) {
 			$settings['theme'] = array();
 			foreach ($_POST as $key => $config)
 			{
-				file_put_contents("files/theme/".base64_decode($key)."/before-script", $config['beforescript']);
-				file_put_contents("files/theme/".base64_decode($key)."/after-script", $config['afterscript']);
+				file_put_contents("files/theme/".base64_decode($key)."/before-script", str_replace("\r", "", $config['beforescript']));
+				file_put_contents("files/theme/".base64_decode($key)."/after-script", str_replace("\r", "", $config['afterscript']));
 				$settings['theme'] = array_merge($settings['theme'], array(base64_decode($key) => array('name' => $config['name'], 'link' => $config['link'], 'removeodex' => $config['removeodex'])));
 			}
 			$jsettings = json_encode($settings);
