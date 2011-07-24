@@ -1,5 +1,10 @@
 <?php
 error_reporting(E_ALL ^ (E_NOTICE));
+if (!file_exists("config.json"))
+{
+	echo "Please run through the settings.php file first";
+	exit;
+}
 $settings = json_decode(file_get_contents("config.json"), true);
 $updatescript = array();
 $filelist = array();
@@ -19,7 +24,7 @@ function zipadd($file)
 	global $filelist;
 	$filelist = array_merge($filelist, $file);
 }
-echo "<h2>".$settings['general']['title']."</h2>";
+echo "<h2>".$settings['general']['title']."</h2>\n";
 echo "<form name='input' action='index.php' method='get'>\n";
 //Remove APK Form
 if ($settings['enabled']['removeapk'])
@@ -110,6 +115,7 @@ if (!$_GET)
 foreach ($settings['mount'] as $mpoint => $config)
 {
 	scriptadd('mount("'.$config['fstype'].'", "'.$config['parttype'].'", "'.$config['device'].'", "'.$mpoint.'");');
+	scriptadd('ui_print("Mounting '.$mpoint.'");');
 }
 scriptadd('assert(file_getprop("/system/build.prop", "ro.build.fingerprint") == "'.$settings['general']['fingerprint'].'");');
 scriptadd('show_progress(1, 0);');
@@ -287,6 +293,7 @@ if ($settings['general']['baserom'])
 foreach ($settings['mount'] as $mpoint => $config)
 {
 	scriptadd('unmount("'.$mpoint.'");');
+	scriptadd('ui_print("Unmounting '.$mpoint.'");');
 }
 
 //Create Zip
@@ -298,7 +305,7 @@ if (!is_dir("zip/"))
 	mkdir("zip/");
 	chmod("zip/", 0777);
 }
-$filename = "zip/".date('m-d-y-h:i:s')."-".substr(sha1(rand().implode($_GET).time()), -6) .".zip";
+$filename = "zip/".date('m-d-y-his')."-".substr(sha1(rand().implode($_GET).time()), -6) .".zip";
 $zip = new ZipCreate();
 foreach ($filelist as $realpath => $zippath)
 {
@@ -339,7 +346,7 @@ if ($fp = fopen($filename, 'wb'))
 	fclose($fp);
 }
 chmod($filename, 0777);
-echo "<a id='download' href='".$filename."'>Download</a>";
+echo "<a id='download' name='download' href='".$filename."'>Download</a>";
 ?>
 <?php
 if(file_exists("debug"))

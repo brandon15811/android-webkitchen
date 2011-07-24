@@ -1,7 +1,7 @@
 <?php
 session_start();
 error_reporting(E_ALL ^ (E_NOTICE));
- 
+include 'includes/jsonformat.php';
 $password_sha1="";
 if (empty($password_sha1))
 {
@@ -11,7 +11,7 @@ if (empty($password_sha1))
 
 if (!isset($_SESSION['loggedin']))
 {
-	if (!isset($_POST['pass']))
+	elseif (!isset($_POST['pass']))
 	{
 		echo '<form name="pw" action="settings.php" method="post">'."\n";
 		echo 'Password: <input type="password" name="pass">'."\n";
@@ -32,11 +32,15 @@ if (!isset($_SESSION['loggedin']))
 	}
 }
 
+if (!file_exists("config.json"))
+{
+	$setting = array("removeapk" => array(), "bootanim" => array(), "mod" => array(), "theme" => array(), "kernel" => array(), "enabled" => array(), "general" => array(), "mount" => array());
+	file_put_contents("config.json", indent(json_encode($setting)));
+}
+
 echo '<script src="includes/formadd.js" type="text/javascript"></script>'."\n";
 $settings = json_decode(file_get_contents("config.json"), true);
-include 'includes/jsonformat.php';
 echo "<a href='settings.php'>Settings Index</a><br><br>\n";
-
 switch ($_GET['section']) {
 	case "removeapk":
 		echo '<form name="removeapk" action="settings.php?section=removeapk" method="post">'."\n";
