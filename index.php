@@ -1,3 +1,5 @@
+<html>
+<body onload='dl_links()'>
 <?php
 error_reporting(E_ALL ^ (E_NOTICE));
 if (!file_exists("config.json"))
@@ -25,6 +27,36 @@ function zipadd($file)
 	$filelist = array_merge($filelist, $file);
 }
 echo "<h2>".$settings['general']['title']."</h2>\n";
+
+if ($_GET)
+{
+?>
+<div id="downloads">
+<script type="text/javascript">
+function dl_links()
+{
+	var dl_link = document.getElementById('download').href
+	var pc_link = document.createElement('a')
+	pc_link.href = dl_link
+	pc_link.innerText = "Download"
+	var wc_link = document.createElement('a')
+	wc_link.href = "https://tickleservice.appspot.com/authorizedtickle?applicationId=ROM Manager&data.url=" + dl_link + "&data.name=Online Web Kitchen&failure_redirect=http://rommanager.appspot.com/webconnectfailure.html&success_redirect=http://rommanager.appspot.com/webconnectsuccess.html"
+	wc_link.innerText = "Download with Rom Manager Web Connect";
+	var qr_code = document.createElement('img')
+	qr_code.src = "https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=" + dl_link
+	var dldiv = document.getElementById('downloads')
+	dldiv.appendChild(pc_link)
+	dldiv.innerHTML += "<br>"
+	dldiv.appendChild(qr_code)
+	dldiv.innerHTML += "<br>"
+	dldiv.appendChild(wc_link)
+	
+}
+	</script>
+	</div>
+
+<?php
+}
 echo "<form name='input' action='index.php' method='get'>\n";
 //Remove APK Form
 if ($settings['enabled']['removeapk'])
@@ -365,3 +397,5 @@ if(file_exists("debug"))
 	echo "</pre>";
 }
 ?>
+</body>
+</html>

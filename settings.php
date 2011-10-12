@@ -3,6 +3,11 @@ session_start();
 error_reporting(E_ALL ^ (E_NOTICE));
 include 'includes/jsonformat.php';
 $password_sha1="";
+if (file_exists("debug"))
+{
+	$password_sha1=" ";
+	$_SESSION['loggedin'] = true;
+}
 if (empty($password_sha1))
 {
 	echo "Please set a password in this file.";
@@ -11,7 +16,7 @@ if (empty($password_sha1))
 
 if (!isset($_SESSION['loggedin']))
 {
-	elseif (!isset($_POST['pass']))
+	if (!isset($_POST['pass']))
 	{
 		echo '<form name="pw" action="settings.php" method="post">'."\n";
 		echo 'Password: <input type="password" name="pass">'."\n";
